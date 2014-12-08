@@ -42,11 +42,21 @@ func main() {
 		log.Fatalf("Could not create backup destination: %s", dst)
 	}
 
+	wipetmp := func() {
+		err := os.RemoveAll(dst)
+		if err != nil {
+			log.Fatalf("Failed to remove archives at %s", dst)
+		}
+		log.Printf("Removed archives at %s", dst)
+	}
+	defer wipetmp()
+
 	log.Printf("%d data volumes to backup in %s .", len(volumes), dst)
 
 	for _, vol := range volumes {
 		file, err := backupVolume(client, dst, vol)
 		if err != nil {
+			wipetmp()
 			log.Fatal(err.Error())
 		}
 		log.Printf(" * %s", path.Base(file))
@@ -54,6 +64,7 @@ func main() {
 
 	err = unpauseContainers(client, toPause)
 	if err != nil {
+		wipetmp()
 		log.Fatal(err.Error())
 	}
 	log.Printf("Unpaused %d cointainers.\n", len(toPause))
