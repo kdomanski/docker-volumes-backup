@@ -1,7 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"path"
+	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
 )
@@ -24,15 +28,25 @@ func main() {
 	log.Printf("Paused %d cointainers.\n", len(toPause))
 
 	volumes := getDataVolumes(client)
-	log.Printf("%d data volumes to backup.", len(volumes))
+
+	// set destination for all backups
+	dst := "/tmp/"
+	t := time.Now().UTC()
+	datetime := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+	dst += datetime + "/"
+	err = os.Mkdir(dst, 0700)
+	if err != nil {
+		log.Fatalf("Could not create backup destination: %s", dst)
+	}
+
+	log.Printf("%d data volumes to backup in %s .", len(volumes), dst)
 
 	for _, vol := range volumes {
-		log.Printf(" * Backing up %s", vol.path)
-		file, err := backupVolume(client, "/tmp/", vol)
+		file, err := backupVolume(client, dst, vol)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		log.Println(file)
+		log.Printf(" * %s", path.Base(file))
 	}
 
 	err = unpauseContainers(client, toPause)
