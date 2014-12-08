@@ -13,64 +13,40 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	paused, err := pauseRunning(client)
+	toPause, err := getRunningContainers(client)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	log.Printf("Paused %d cointainers.\n", len(paused))
+	err = pauseContainers(client, toPause)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	log.Printf("Paused %d cointainers.\n", len(toPause))
 
 	volumes := getDataVolumes(client)
 	log.Printf("%d data volumes to backup.", len(volumes))
 
-	err = unpause(client, paused)
+	err = unpauseContainers(client, toPause)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	log.Printf("Unpaused %d cointainers.\n", len(paused))
+	log.Printf("Unpaused %d cointainers.\n", len(toPause))
 }
 
-func pauseRunning(cli *docker.Client) ([]string, error) {
+func getRunningContainers(cli *docker.Client) ([]string, error) {
 	containers, err := cli.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	errchan := make(chan error)
-	idchan := make(chan string)
-	var toPause int = 0
-
+	ids := make([]string, 0)
 	for _, cont := range containers {
-		if isRunning(&cont) {
-
-			toPause++
-
-			go func(id string) {
-				err := cli.PauseContainer(id)
-				if err != nil {
-					errchan <- err
-				} else {
-					idchan <- id
-				}
-			}(cont.ID)
+		if isRunning(cont) {
+			ids = append(ids, cont.ID)
 		}
 	}
 
-	pausedIDs := make([]string, 0, 0)
-
-	for {
-		select {
-		case id := <-idchan:
-			toPause--
-			pausedIDs = append(pausedIDs, id)
-		case err := <-errchan:
-			return nil, err
-		default:
-		}
-
-		if toPause == 0 {
-			return pausedIDs, nil
-		}
-	}
+	return ids, nil
 }
 
 func getDataVolumes(cli *docker.Client) []Volume {
@@ -82,8 +58,9 @@ func getDataVolumes(cli *docker.Client) []Volume {
 	vols := make([]Volume, 0, 0)
 
 	for _, cont := range containers {
-		if isVolumeContainer(&cont) {
-			moreVols := getVolumes(cli, &cont)
+		c := cont
+		if isVolumeContainer(&c) {
+			moreVols := getVolumes(cli, &c)
 			vols = append(vols, moreVols...)
 		}
 	}

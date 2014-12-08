@@ -46,13 +46,13 @@ func getVolumes(cli *docker.Client, cont *docker.APIContainers) []Volume {
 	return vols
 }
 
-func isRunning(cont *docker.APIContainers) bool {
+func isRunning(cont docker.APIContainers) bool {
 	up := strings.HasPrefix(cont.Status, "Up ")
 	paused := strings.HasSuffix(cont.Status, " (Paused)")
 	return up && !paused
 }
 
-func unpause(cli *docker.Client, containerIDs []string) error {
+func unpauseContainers(cli *docker.Client, containerIDs []string) error {
 	errchan := make(chan error)
 	okchan := make(chan int)
 	var toUnPause int = 0
@@ -80,6 +80,39 @@ func unpause(cli *docker.Client, containerIDs []string) error {
 		}
 
 		if toUnPause == 0 {
+			return nil
+		}
+	}
+}
+
+func pauseContainers(cli *docker.Client, containerIDs []string) error {
+	errchan := make(chan error)
+	okchan := make(chan int)
+	var toPause int = 0
+
+	for _, cont := range containerIDs {
+		toPause++
+
+		go func(id string) {
+			err := cli.PauseContainer(id)
+			if err != nil {
+				errchan <- err
+			} else {
+				okchan <- 1
+			}
+		}(cont)
+	}
+
+	for {
+		select {
+		case _ = <-okchan:
+			toPause--
+		case err := <-errchan:
+			return err
+		default:
+		}
+
+		if toPause == 0 {
 			return nil
 		}
 	}
