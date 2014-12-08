@@ -26,6 +26,15 @@ func main() {
 	volumes := getDataVolumes(client)
 	log.Printf("%d data volumes to backup.", len(volumes))
 
+	for _, vol := range volumes {
+		log.Printf(" * Backing up %s", vol.path)
+		file, err := backupVolume(client, "/tmp/", vol)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		log.Println(file)
+	}
+
 	err = unpauseContainers(client, toPause)
 	if err != nil {
 		log.Fatal(err.Error())

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -35,8 +38,71 @@ func (v *Volume) getBareFilename() string {
 	return str
 }
 
-func backupVolume(cont *docker.Client, containerID, volume string) {
+func backupVolume(cli *docker.Client, directory string, v Volume) (string, error) {
+	filename := v.getBareFilename() + ".tar"
+	path := "/backup/" + filename
+	hostpath := directory + filename
 
+	//cmd := "tar zcvf " + path + " " + v.path
+	//log.Println(cmd)
+
+	vols := make(map[string]struct{})
+	vols["/backup/"] = struct{}{}
+
+	binds := []string{
+		directory + ":/backup/",
+	}
+
+	conf := &docker.Config{
+		Cmd:         []string{"tar", "cvf", path, v.path},
+		Image:       "busybox",
+		VolumesFrom: v.container.ID,
+		Volumes:     vols,
+	}
+	hostconf := &docker.HostConfig{
+		Binds:       binds,
+		VolumesFrom: []string{v.container.ID},
+	}
+	opts := docker.CreateContainerOptions{
+		Config:     conf,
+		HostConfig: hostconf,
+	}
+
+	cont, err := cli.CreateContainer(opts)
+	if err != nil {
+		return "", err
+	}
+
+	//defer cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
+
+	err = cli.StartContainer(cont.ID, hostconf)
+	if err != nil {
+		return "", err
+	}
+
+	retcode, err := cli.WaitContainer(cont.ID)
+	if err != nil {
+		os.Remove(hostpath)
+		return "", err
+	}
+
+	if retcode != 0 {
+		os.Remove(hostpath)
+		str := fmt.Sprintf("Failed to create volume backup - tar return code is %d", retcode)
+		return "", errors.New(str)
+	}
+
+	fileinfo, err := os.Stat(hostpath)
+	if err != nil {
+		return "", err
+	}
+
+	if false == fileinfo.Mode().IsRegular() {
+		str := fmt.Sprintf("Failed to create volume backup - created file %s is not regular", hostpath)
+		return "", errors.New(str)
+	}
+
+	return hostpath, nil
 }
 
 //func createVolumeFilename
