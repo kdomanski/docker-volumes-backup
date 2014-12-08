@@ -68,6 +68,14 @@ func main() {
 		log.Fatal(err.Error())
 	}
 	log.Printf("Unpaused %d cointainers.\n", len(toPause))
+
+	err = deliverToFTP(config, dst)
+	if err != nil {
+		wipetmp()
+		log.Fatalf("Failed uploading to FTP: %s", err.Error())
+	}
+	log.Println("FTP upload successful")
+
 }
 
 func getRunningContainers(cli *docker.Client) ([]string, error) {

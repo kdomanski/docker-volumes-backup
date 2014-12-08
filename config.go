@@ -10,10 +10,11 @@ import (
 )
 
 type Config struct {
-	Ftp_host string
-	Ftp_path string
-	Ftp_user string
-	Ftp_pass string
+	Ftp_host  string
+	Ftp_path  string
+	Ftp_user  string
+	Ftp_pass  string
+	Ftp_proxy string
 }
 
 func GetYAML() ([]byte, error) {
@@ -27,7 +28,7 @@ func GetYAML() ([]byte, error) {
 	}
 }
 
-func GetConfig() *Config {
+func GetConfig() Config {
 	yml, err := GetYAML()
 	if err != nil {
 		log.Fatal(err.Error())
@@ -40,5 +41,5 @@ func GetConfig() *Config {
 		log.Fatal(err.Error())
 	}
 
-	return &config
+	return config
 }
