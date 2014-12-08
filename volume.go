@@ -77,7 +77,7 @@ func backupVolume(cli *docker.Client, directory string, v Volume) (string, error
 		return "", err
 	}
 
-	//defer cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
+	defer cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
 
 	err = cli.StartContainer(cont.ID, hostconf)
 	if err != nil {
