@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -43,6 +44,8 @@ func backupVolume(cli *docker.Client, directory string, v Volume) (string, error
 	path := "/backup/" + filename
 	hostpath := directory + filename
 
+	user := strconv.Itoa(os.Geteuid())
+
 	//cmd := "tar zcvf " + path + " " + v.path
 	//log.Println(cmd)
 
@@ -56,6 +59,7 @@ func backupVolume(cli *docker.Client, directory string, v Volume) (string, error
 	conf := &docker.Config{
 		Cmd:         []string{"tar", "cvf", path, v.path},
 		Image:       "busybox",
+		User:        user,
 		VolumesFrom: v.container.ID,
 		Volumes:     vols,
 	}
