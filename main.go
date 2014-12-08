@@ -11,6 +11,9 @@ import (
 )
 
 func main() {
+	config := GetConfig()
+	fmt.Println(config)
+
 	// Init the client
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
