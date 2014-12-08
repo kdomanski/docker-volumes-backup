@@ -1,0 +1,5 @@
+ ftp_host: backups.intranet.example.com
+ ftp_path: "/backups"
+ ftp_user: backadmin
+ ftp_pass: sillypassword
+ ftp_proxy: "socks5://localhost:8080"
