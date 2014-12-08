@@ -4,11 +4,11 @@ import (
 	"log"
 	"strings"
 
-	"github.com/samalba/dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 type Volume struct {
-	container *dockerclient.Container
+	container *docker.APIContainers
 	path      string
 }
 
@@ -35,7 +35,7 @@ func (v *Volume) getBareFilename() string {
 	return str
 }
 
-func backupVolume(cont *dockerclient.DockerClient, containerID, volume string) {
+func backupVolume(cont *docker.Client, containerID, volume string) {
 
 }
 

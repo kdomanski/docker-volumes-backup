@@ -6,10 +6,10 @@ import (
 	"log"
 	"strings"
 
-	"github.com/samalba/dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
-func isVolumeContainer(cont *dockerclient.Container) bool {
+func isVolumeContainer(cont *docker.APIContainers) bool {
 	truename, err := getTrueName(cont)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -18,20 +18,20 @@ func isVolumeContainer(cont *dockerclient.Container) bool {
 	return strings.HasSuffix(truename, "-volumes")
 }
 
-func getTrueName(cont *dockerclient.Container) (string, error) {
+func getTrueName(cont *docker.APIContainers) (string, error) {
 	for _, name := range cont.Names {
 		if strings.Count(name, "/") == 1 {
 			return name, nil
 		}
 	}
 
-	errmsg := fmt.Sprintf("No unaliased names for container %s", cont.Id)
+	errmsg := fmt.Sprintf("No unaliased names for container %s", cont.ID)
 	return "", errors.New(errmsg)
 }
 
-func getVolumes(d *dockerclient.DockerClient, cont *dockerclient.Container) []Volume {
+func getVolumes(cli *docker.Client, cont *docker.APIContainers) []Volume {
 	// get ContainerInfo by inspection
-	info, err := d.InspectContainer(cont.Id)
+	info, err := cli.InspectContainer(cont.ID)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -46,13 +46,13 @@ func getVolumes(d *dockerclient.DockerClient, cont *dockerclient.Container) []Vo
 	return vols
 }
 
-func isRunning(d *dockerclient.DockerClient, cont *dockerclient.Container) bool {
+func isRunning(cont *docker.APIContainers) bool {
 	up := strings.HasPrefix(cont.Status, "Up ")
 	paused := strings.HasSuffix(cont.Status, " (Paused)")
 	return up && !paused
 }
 
-func unpause(d *dockerclient.DockerClient, containerIDs []string) error {
+func unpause(cli *docker.Client, containerIDs []string) error {
 	errchan := make(chan error)
 	okchan := make(chan int)
 	var toUnPause int = 0
@@ -61,7 +61,7 @@ func unpause(d *dockerclient.DockerClient, containerIDs []string) error {
 		toUnPause++
 
 		go func(id string) {
-			err := d.UnpauseContainer(id)
+			err := cli.UnpauseContainer(id)
 			if err != nil {
 				errchan <- err
 			} else {

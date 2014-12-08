@@ -1,37 +1,36 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
-	"github.com/samalba/dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 func main() {
 	// Init the client
-	docker, err := dockerclient.NewDockerClient("unix:///var/run/docker.sock", nil)
+	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	paused, err := pauseRunning(docker)
+	paused, err := pauseRunning(client)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 	log.Printf("Paused %d cointainers.\n", len(paused))
 
-	volumes := getDataVolumes(docker)
+	volumes := getDataVolumes(client)
 	log.Printf("%d data volumes to backup.", len(volumes))
 
-	err = unpause(docker, paused)
+	err = unpause(client, paused)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 	log.Printf("Unpaused %d cointainers.\n", len(paused))
 }
 
-func pauseRunning(d *dockerclient.DockerClient) ([]string, error) {
-	containers, err := d.ListContainers(false, false, "")
+func pauseRunning(cli *docker.Client) ([]string, error) {
+	containers, err := cli.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -41,18 +40,18 @@ func pauseRunning(d *dockerclient.DockerClient) ([]string, error) {
 	var toPause int = 0
 
 	for _, cont := range containers {
-		if isRunning(d, &cont) {
+		if isRunning(&cont) {
 
 			toPause++
 
 			go func(id string) {
-				err := d.PauseContainer(id)
+				err := cli.PauseContainer(id)
 				if err != nil {
 					errchan <- err
 				} else {
 					idchan <- id
 				}
-			}(cont.Id)
+			}(cont.ID)
 		}
 	}
 
@@ -74,8 +73,8 @@ func pauseRunning(d *dockerclient.DockerClient) ([]string, error) {
 	}
 }
 
-func getDataVolumes(d *dockerclient.DockerClient) []Volume {
-	containers, err := d.ListContainers(true, false, "")
+func getDataVolumes(cli *docker.Client) []Volume {
+	containers, err := cli.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,20 +83,10 @@ func getDataVolumes(d *dockerclient.DockerClient) []Volume {
 
 	for _, cont := range containers {
 		if isVolumeContainer(&cont) {
-			moreVols := getVolumes(d, &cont)
+			moreVols := getVolumes(cli, &cont)
 			vols = append(vols, moreVols...)
 		}
 	}
 
 	return vols
-}
-
-func makeBackups(d *dockerclient.DockerClient, cont *dockerclient.Container) []string {
-	info, err := d.InspectContainer(cont.Id)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	fmt.Println(info.Volumes)
-	return make([]string, 0)
 }
