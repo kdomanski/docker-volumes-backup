@@ -46,56 +46,18 @@ func backupVolume(cli *docker.Client, directory string, v Volume, keepFailed boo
 
 	user := strconv.Itoa(os.Geteuid())
 
-	//cmd := "tar zcvf " + path + " " + v.path
-	//log.Println(cmd)
-
-	vols := make(map[string]struct{})
-	vols["/backup/"] = struct{}{}
-
 	binds := []string{
 		directory + ":/backup/",
 	}
 
-	conf := &docker.Config{
-		Cmd:         []string{"tar", "cvf", path, v.path},
-		Image:       "busybox",
-		User:        user,
-		VolumesFrom: v.container.ID,
-		Volumes:     vols,
-	}
-	hostconf := &docker.HostConfig{
-		Binds:       binds,
-		VolumesFrom: []string{v.container.ID},
-	}
-	opts := docker.CreateContainerOptions{
-		Config:     conf,
-		HostConfig: hostconf,
-	}
-
-	cont, err := cli.CreateContainer(opts)
+	err := volumeBusybox(cli, []string{"tar", "cvf", path, v.path}, []string{v.container.ID}, binds, keepFailed)
 	if err != nil {
 		return "", err
 	}
 
-	if keepFailed == false {
-		defer cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
-	}
-
-	err = cli.StartContainer(cont.ID, hostconf)
+	err = volumeBusybox(cli, []string{"chown", user, path}, nil, binds, keepFailed)
 	if err != nil {
 		return "", err
-	}
-
-	retcode, err := cli.WaitContainer(cont.ID)
-	if err != nil {
-		os.Remove(hostpath)
-		return "", err
-	}
-
-	if retcode != 0 {
-		os.Remove(hostpath)
-		str := fmt.Sprintf("Failed to create volume backup - tar return code is %d", retcode)
-		return "", errors.New(str)
 	}
 
 	fileinfo, err := os.Stat(hostpath)
@@ -108,11 +70,61 @@ func backupVolume(cli *docker.Client, directory string, v Volume, keepFailed boo
 		return "", errors.New(str)
 	}
 
+	return hostpath, nil
+}
+
+func volumeBusybox(cli *docker.Client, cmd []string, volumesFrom []string, volumes []string, keepFailed bool) error {
+
+	vols := make(map[string]struct{})
+
+	for _, v := range volumes {
+		point := strings.Split(v, ":")[1]
+		vols[point] = struct{}{}
+	}
+
+	conf := &docker.Config{
+		Cmd:     cmd,
+		Image:   "busybox",
+		Volumes: vols,
+	}
+	hostconf := &docker.HostConfig{
+		Binds:       volumes,
+		VolumesFrom: volumesFrom,
+	}
+	opts := docker.CreateContainerOptions{
+		Config:     conf,
+		HostConfig: hostconf,
+	}
+
+	cont, err := cli.CreateContainer(opts)
+	if err != nil {
+		return err
+	}
+
+	if keepFailed == false {
+		defer cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
+	}
+
+	err = cli.StartContainer(cont.ID, hostconf)
+	if err != nil {
+		return err
+	}
+
+	retcode, err := cli.WaitContainer(cont.ID)
+	if err != nil {
+		return err
+	}
+
+	if retcode != 0 {
+		str := fmt.Sprintf("Command failed with code %d", retcode)
+		return errors.New(str)
+	}
+
 	if keepFailed == true {
 		cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
 	}
 
-	return hostpath, nil
+	return nil
 }
 
 //func createVolumeFilename
