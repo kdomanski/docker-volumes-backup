@@ -10,11 +10,12 @@ import (
 )
 
 type Config struct {
-	Ftp_host  string
-	Ftp_path  string
-	Ftp_user  string
-	Ftp_pass  string
-	Ftp_proxy string
+	Ftp_host              string
+	Ftp_path              string
+	Ftp_user              string
+	Ftp_pass              string
+	Ftp_proxy             string
+	keep_failed_container bool
 }
 
 func GetYAML() ([]byte, error) {

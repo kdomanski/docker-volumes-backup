@@ -25,7 +25,7 @@ func main() {
 	}
 	defer eraseFolder(dst)
 
-	_, err = archiveVolumes(dst)
+	_, err = archiveVolumes(dst, config.keep_failed_container)
 	if err != nil {
 		log.Panicf("Failed to archive volumes: %s", err.Error())
 	}
@@ -47,7 +47,7 @@ func eraseFolder(destination string) error {
 	return nil
 }
 
-func archiveVolumes(destination string) ([]string, error) {
+func archiveVolumes(destination string, keepFailed bool) ([]string, error) {
 	// Init the client
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
@@ -79,7 +79,7 @@ func archiveVolumes(destination string) ([]string, error) {
 	files := make([]string, 0)
 
 	for _, vol := range volumes {
-		file, err := backupVolume(client, destination, vol)
+		file, err := backupVolume(client, destination, vol, keepFailed)
 		if err != nil {
 			return files, err
 		}

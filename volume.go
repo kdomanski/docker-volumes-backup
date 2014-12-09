@@ -39,7 +39,7 @@ func (v *Volume) getBareFilename() string {
 	return str
 }
 
-func backupVolume(cli *docker.Client, directory string, v Volume) (string, error) {
+func backupVolume(cli *docker.Client, directory string, v Volume, keepFailed bool) (string, error) {
 	filename := v.getBareFilename() + ".tar"
 	path := "/backup/" + filename
 	hostpath := directory + filename
@@ -77,7 +77,9 @@ func backupVolume(cli *docker.Client, directory string, v Volume) (string, error
 		return "", err
 	}
 
-	defer cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
+	if keepFailed == false {
+		defer cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
+	}
 
 	err = cli.StartContainer(cont.ID, hostconf)
 	if err != nil {
@@ -104,6 +106,10 @@ func backupVolume(cli *docker.Client, directory string, v Volume) (string, error
 	if false == fileinfo.Mode().IsRegular() {
 		str := fmt.Sprintf("Failed to create volume backup - created file %s is not regular", hostpath)
 		return "", errors.New(str)
+	}
+
+	if keepFailed == true {
+		cli.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID, Force: true})
 	}
 
 	return hostpath, nil
