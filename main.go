@@ -25,7 +25,10 @@ func main() {
 	}
 	defer eraseFolder(dst)
 
-	archiveVolumes(dst)
+	_, err = archiveVolumes(dst)
+	if err != nil {
+		log.Panicf("Failed to archive volumes: %s", err.Error())
+	}
 
 	err = deliverToFTP(config, dst)
 	if err != nil {
