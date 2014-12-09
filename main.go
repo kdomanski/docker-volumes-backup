@@ -25,7 +25,7 @@ func main() {
 	}
 	defer eraseFolder(dst)
 
-	_, err = archiveVolumes(dst, config.keep_failed_container)
+	_, err = archiveVolumes(dst, config.Keep_failed_container)
 	if err != nil {
 		log.Panicf("Failed to archive volumes: %s", err.Error())
 	}

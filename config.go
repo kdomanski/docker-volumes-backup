@@ -15,7 +15,7 @@ type Config struct {
 	Ftp_user              string
 	Ftp_pass              string
 	Ftp_proxy             string
-	keep_failed_container bool
+	Keep_failed_container bool
 }
 
 func GetYAML() ([]byte, error) {
