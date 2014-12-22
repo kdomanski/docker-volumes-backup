@@ -91,16 +91,18 @@ func archiveVolumes(destination string, keepFailed bool) ([]string, error) {
 }
 
 func getRunningContainers(cli *docker.Client) ([]string, error) {
-	containers, err := cli.ListContainers(docker.ListContainersOptions{All: true})
+	containers, err := cli.ListContainers(docker.ListContainersOptions{
+		All: true,
+		Filters: map[string][]string{
+			"status": []string{"running"},
+		}})
 	if err != nil {
 		return nil, err
 	}
 
 	ids := make([]string, 0)
 	for _, cont := range containers {
-		if isRunning(cont) {
-			ids = append(ids, cont.ID)
-		}
+		ids = append(ids, cont.ID)
 	}
 
 	return ids, nil
