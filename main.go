@@ -32,7 +32,9 @@ func main() {
 
 	err = deliverToFTP(config, dst)
 	if err != nil {
-		log.Panic("Failed uploading to FTP: %s", err.Error())
+		fmt.Printf("Failed uploading to FTP: %s\n", err.Error())
+		eraseFolder(dst)
+		os.Exit(1)
 	}
 	log.Println("FTP upload successful")
 }
