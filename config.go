@@ -15,6 +15,7 @@ type Config struct {
 	Ftp_user              string
 	Ftp_pass              string
 	Ftp_proxy             string
+	Archive_method        string
 	Keep_failed_container bool
 }
 

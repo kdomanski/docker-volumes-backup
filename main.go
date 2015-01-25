@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -19,20 +20,35 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not create backup destination: %s", dst)
 	}
-	defer eraseFolder(dst)
 
 	_, err = archiveVolumes(dst, config.Keep_failed_container)
 	if err != nil {
+		eraseFolder(dst)
 		log.Panicf("Failed to archive volumes: %s", err.Error())
 	}
 
-	err = deliverToFTP(config, dst)
+	err = storeArchives(dst, config)
 	if err != nil {
-		fmt.Printf("Failed uploading to FTP: %s\n", err.Error())
-		eraseFolder(dst)
-		os.Exit(1)
+		log.Fatalf("Storage failed %s", err.Error())
 	}
-	log.Println("FTP upload successful")
+}
+
+func storeArchives(folder string, config Config) error {
+	switch config.Archive_method {
+	case "ftp":
+		defer eraseFolder(folder)
+		err := deliverToFTP(config, folder)
+		if err != nil {
+			return errors.New(fmt.Sprintf("Failed uploading to FTP: %s\n", err.Error()))
+		} else {
+			log.Println("FTP upload successful")
+		}
+	case "leaveintmp":
+		return nil
+	default:
+		return errors.New(fmt.Sprintf("Unknown storage method '%s'", config.Archive_method))
+	}
+	return nil
 }
 
 func createArchiveDir() (string, error) {
