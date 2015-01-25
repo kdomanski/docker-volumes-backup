@@ -3,5 +3,9 @@
  ftp_user: backadmin
  ftp_pass: sillypassword
  ftp_proxy: "socks5://localhost:8080"
+ scp_host: backups.intranet.example.com
+ scp_path: backups
+ scp_user: backadmin
+ scp_port: 22
  archive_method: ftp
  keep_failed_container: false

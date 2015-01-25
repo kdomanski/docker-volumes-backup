@@ -43,6 +43,14 @@ func storeArchives(folder string, config Config) error {
 		} else {
 			log.Println("FTP upload successful")
 		}
+	case "scp":
+		defer eraseFolder(folder)
+		err := deliverBySCP(config, folder)
+		if err != nil {
+			return errors.New(fmt.Sprintf("Failed uploading by SCP: %s\n", err.Error()))
+		} else {
+			log.Println("SCP upload successful")
+		}
 	case "leaveintmp":
 		return nil
 	default:

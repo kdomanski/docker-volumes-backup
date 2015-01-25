@@ -15,6 +15,10 @@ type Config struct {
 	Ftp_user              string
 	Ftp_pass              string
 	Ftp_proxy             string
+	Scp_host              string
+	Scp_path              string
+	Scp_user              string
+	Scp_port              string
 	Archive_method        string
 	Keep_failed_container bool
 }
