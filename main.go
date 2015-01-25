@@ -14,12 +14,8 @@ func main() {
 	config := GetConfig()
 	fmt.Println(config)
 
-	// set destination for all backups
-	dst := "/tmp/"
-	t := time.Now().UTC()
-	datetime := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
-	dst += datetime + "/"
-	err := os.Mkdir(dst, 0700)
+	// get destination for all backups
+	dst, err := createArchiveDir()
 	if err != nil {
 		log.Fatalf("Could not create backup destination: %s", dst)
 	}
@@ -37,6 +33,15 @@ func main() {
 		os.Exit(1)
 	}
 	log.Println("FTP upload successful")
+}
+
+func createArchiveDir() (string, error) {
+	dst := "/tmp/"
+	t := time.Now().UTC()
+	datetime := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+	dst += datetime + "/"
+	err := os.Mkdir(dst, 0700)
+	return dst, err
 }
 
 func eraseFolder(destination string) error {
